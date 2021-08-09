@@ -1,7 +1,9 @@
 package com.kalsym.catalogueimportservice.services;
 
-import com.kalsym.catalogueimportservice.models.product.Product;
-import com.kalsym.catalogueimportservice.repositories.MigrationRepository;
+import com.kalsym.catalogueimportservice.models.product.*;
+import com.kalsym.catalogueimportservice.models.product.enums.Status;
+import com.kalsym.catalogueimportservice.repositories.ProductInventoryRepository;
+import com.kalsym.catalogueimportservice.repositories.ProductRepository;
 import com.opencsv.CSVParser;
 import com.opencsv.CSVParserBuilder;
 import com.opencsv.CSVReader;
@@ -22,13 +24,14 @@ import java.util.Scanner;
 public class MigrationService {
 
     @Autowired
-    MigrationRepository migrationRepository;
+    ProductRepository productRepository;
+
+    @Autowired
+    ProductInventoryRepository productInventoryRepository;
 
 
     public List<List<String>> readProductData(MultipartFile file, char delimiter)
     {
-        String filename = file.getOriginalFilename();
-        System.out.println(filename);
         CSVParser parser = new CSVParserBuilder().withSeparator(delimiter).build();
         List<List<String>> records = new ArrayList<List<String>>();
         try (CSVReader csvReader = new CSVReaderBuilder(new InputStreamReader(file.getInputStream())).withCSVParser(parser).build()) {
@@ -45,51 +48,97 @@ public class MigrationService {
     }
 
     public ResponseEntity importProductData(List<List<String>> productData, char delimiter){
-        List<Product> importedProducts = new ArrayList<>();
+        List<ProductWithDetails> importedProducts = new ArrayList<>();
         List<String> columns = productData.get(0);
-        System.out.println(columns);
         productData.remove(0);
-        System.out.println(productData.size());
+
         try{
-            for(List<String> product : productData)
-            {
-                System.out.println(product.size()+" data : "+ product);
-                Product p = new Product();
-                switch (delimiter){
-                    case ';':{
+            switch (delimiter){
+                case ';':{
+                    for(List<String> product : productData)
+                    {
+                        ProductWithDetails p = new ProductWithDetails();
+                        ProductInventory productInventory = new ProductInventory();
+
                         p.setName(product.get(columns.indexOf("name")));
-                        p.setDescription(product.get(columns.indexOf("short_description"))+"<br>"+
-                                product.get(columns.indexOf("description"))+"<br>");
-                        p.setStatus(product.get(columns.indexOf("Status")));
-                        p.setThumbnailUrl(product.get(columns.indexOf("product_picture1")));
+                        p.setDescription(product.get(columns.indexOf("short_description"))+"<br>");
+                        if(product.get(columns.indexOf("Status")).toLowerCase().equals("active")){
+                            p.setStatus(Status.ACTIVE);
+                        }
+                        else{
+                            p.setStatus(Status.DRAFT);
+                        }
+
+                        p.setThumbnailUrl(product.get(columns.indexOf("MainImage")));
+                        p.setProductAssets(null);
+                        p.setCategoryId(null);
+                        p.setProductInventories(null);
+
+                        productInventory.setProductId(productRepository.save(p).getId());
+                        //TODO: SKU CHANGED TO 100 in DATABASE
+                        productInventory.setSKU(product.get(0));
+                        productInventory.setPrice(Double.parseDouble(product.get(columns.indexOf("price"))));
+                        productInventory.setQuantity(Integer.parseInt(product.get(columns.indexOf("quantity"))));
+                        productInventory.setCompareAtprice(null);
+                        productInventory.setItemCode(productInventory.getProductId()+"-aaa");
+                        productInventoryRepository.save(productInventory);
+
+
+
+
+//                        if( productData.size() > (productData.indexOf(product)+1) &&
+//                                productData.get(productData.indexOf(product)+1)
+//                                .get(0)
+//                                .contains(product.get(0)
+//                                        .split("-")[0])){
+//
+//                            ProductVariant productVariant = new ProductVariant();
+//                            productVariant.setProduct(p);
+//
+//                            ProductVariantAvailable variantAvailable = new ProductVariantAvailable();
+//                            variantAvailable.setProductId(p.getId());
+//                            variantAvailable.setValue("");
+//
+//                        }
+
                         importedProducts.add(p);
-                        break;
                     }
-                    case ',':{
+
+                    break;
+                }
+                case ',':{
+                    for(List<String> product : productData)
+                    {
+                        ProductWithDetails p = new ProductWithDetails();
+                        ProductInventory productInventory = new ProductInventory();
+
                         p.setName(product.get(columns.indexOf("*Product Name")));
+//                        p.setCategoryId(product.get(columns.indexOf("catId")));
                         p.setDescription(product.get(columns.indexOf("Short Description"))+"<br>");
-                        p.setStatus("");
+                        p.setStatus(Status.DRAFT );
                         p.setThumbnailUrl(product.get(columns.indexOf("*Product Images1")));
+
+                        productInventory.setProductId(productRepository.save(p).getId());
+                        //TODO: SKU CHANGED TO 100 in DATABASE
+                        productInventory.setSKU(product.get(0));
+                        productInventory.setItemCode(productInventory.getProductId()+"-aaa");
+                        productInventoryRepository.save(productInventory);
+
                         importedProducts.add(p);
-                        break;
                     }
+                    break;
                 }
             }
+
+
+
+
         }catch (Exception e){
+            e.printStackTrace();
             return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("Wrong Vendor Selected !");
         }
         return ResponseEntity.status(HttpStatus.OK).body(importedProducts);
     }
 
-    private List<String> getRecordFromLine(String line) {
-        List<String> values = new ArrayList<String>();
-        try (Scanner rowScanner = new Scanner(line)) {
-            rowScanner.useDelimiter(";");
-            while (rowScanner.hasNext()) {
-                values.add(rowScanner.next());
-            }
-        }
-        return values;
-    }
 
 }

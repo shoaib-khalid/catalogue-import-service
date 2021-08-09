@@ -1,5 +1,6 @@
 package com.kalsym.catalogueimportservice.models.product;
 
+import com.kalsym.catalogueimportservice.models.product.enums.Status;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
@@ -40,7 +41,8 @@ public class ProductWithDetails implements Serializable {
     @Column(name = "categoryId")
     private String categoryId;
 
-    private String status;
+    @Enumerated(EnumType.STRING)
+    private Status status;
 
     private String thumbnailUrl;
 
@@ -52,32 +54,17 @@ public class ProductWithDetails implements Serializable {
     private String seoUrl;
     
     private String seoName;
-    
+
 
     @OneToMany(cascade = CascadeType.ALL,
             fetch = FetchType.LAZY)
     @JoinColumn(name = "productId")
-    private List<ProductVariant> productVariants;
-
-    @OneToMany(cascade = CascadeType.ALL,
-            fetch = FetchType.LAZY)
-    @JoinColumn(name = "productId")
-    private List<ProductInventoryWithDetails> productInventories;
-
-    @OneToMany(cascade = CascadeType.ALL,
-            fetch = FetchType.LAZY)
-    @JoinColumn(name = "productId")
-    private Set<ProductReview> productReviews = new HashSet<>();
+    private List<ProductInventory> productInventories;
 
     @OneToMany(cascade = CascadeType.ALL,
             fetch = FetchType.LAZY)
     @JoinColumn(name = "productId")
     private List<ProductAsset> productAssets;
-
-    @OneToOne(cascade = CascadeType.ALL,
-            fetch = FetchType.LAZY)
-    @JoinColumn(name = "id", referencedColumnName = "productId", insertable = false, updatable = false, nullable = true)
-    private ProductDeliveryDetail productDeliveryDetail;
 
     public void update(ProductWithDetails product) {
         if (null != product.getName()) {

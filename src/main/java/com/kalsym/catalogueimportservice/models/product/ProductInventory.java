@@ -36,6 +36,4 @@ public class ProductInventory implements Serializable {
     private Integer quantity;
 
     private String productId;
-    
-    private String status;
 }

@@ -19,11 +19,6 @@ public class MigrationController {
     @Autowired
     MigrationService migrationService;
 
-    @GetMapping(path = {""})
-    public String hello(){
-        return "Hello World";
-    }
-
     @PostMapping(path = {"/{type}/upload"})
     public ResponseEntity<?> uploadFile(HttpServletRequest request,
                                         @PathVariable String type,
