@@ -19,17 +19,18 @@ public class MigrationController {
     @Autowired
     MigrationService migrationService;
 
-    @PostMapping(path = {"/{type}/upload"})
+    @PostMapping(path = {"/{storeId}/{type}/upload"})
     public ResponseEntity<?> uploadFile(HttpServletRequest request,
                                         @PathVariable String type,
+                                        @PathVariable String storeId,
                                         @RequestParam("file") MultipartFile file){
 
         List<Product> products = new ArrayList<>();
         if(type.equals("daraz")){
-            return migrationService.importProductData(migrationService.readProductData(file,';'),';');
+            return migrationService.importProductData(migrationService.readProductData(file,';'),';', storeId);
         }
         else if (type.equals("lazada")){
-           return migrationService.importProductData(migrationService.readProductData(file,','),',');
+           return migrationService.importProductData(migrationService.readProductData(file,','),',', storeId);
         }
         else
             return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("BAD REQUEST");

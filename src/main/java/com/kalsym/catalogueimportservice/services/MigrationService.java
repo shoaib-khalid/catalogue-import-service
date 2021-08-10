@@ -47,7 +47,7 @@ public class MigrationService {
         return records;
     }
 
-    public ResponseEntity importProductData(List<List<String>> productData, char delimiter){
+    public ResponseEntity importProductData(List<List<String>> productData, char delimiter, String storeId){
         List<ProductWithDetails> importedProducts = new ArrayList<>();
         List<String> columns = productData.get(0);
         productData.remove(0);
@@ -69,6 +69,7 @@ public class MigrationService {
                             p.setStatus(Status.DRAFT);
                         }
 
+                        p.setStoreId(storeId);
                         p.setThumbnailUrl(product.get(columns.indexOf("MainImage")));
                         p.setProductAssets(null);
                         p.setCategoryId(null);
@@ -112,6 +113,7 @@ public class MigrationService {
                         ProductWithDetails p = new ProductWithDetails();
                         ProductInventory productInventory = new ProductInventory();
 
+                        p.setStoreId(storeId);
                         p.setName(product.get(columns.indexOf("*Product Name")));
 //                        p.setCategoryId(product.get(columns.indexOf("catId")));
                         p.setDescription(product.get(columns.indexOf("Short Description"))+"<br>");
