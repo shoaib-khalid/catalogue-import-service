@@ -8,17 +8,18 @@ import com.opencsv.CSVParser;
 import com.opencsv.CSVParserBuilder;
 import com.opencsv.CSVReader;
 import com.opencsv.CSVReaderBuilder;
+import org.jboss.logging.BasicLogger;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
+import com.kalsym.catalogueimportservice.utils.LogUtil;
 
 import java.io.*;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
-import java.util.Scanner;
 
 @Service
 public class MigrationService {
@@ -29,9 +30,11 @@ public class MigrationService {
     @Autowired
     ProductInventoryRepository productInventoryRepository;
 
-
     public List<List<String>> readProductData(MultipartFile file, char delimiter)
     {
+        String location = Thread.currentThread().getStackTrace()[1].getMethodName();
+        String logPrefix = "migrationService "+ "Line No. : " + Thread.currentThread().getStackTrace()[1].getLineNumber();
+
         CSVParser parser = new CSVParserBuilder().withSeparator(delimiter).build();
         List<List<String>> records = new ArrayList<List<String>>();
         try (CSVReader csvReader = new CSVReaderBuilder(new InputStreamReader(file.getInputStream())).withCSVParser(parser).build()) {
@@ -39,18 +42,23 @@ public class MigrationService {
             while ((values = csvReader.readNext()) != null) {
                 records.add(Arrays.asList(values));
             }
-        } catch (FileNotFoundException e) {
-            e.printStackTrace();
-        } catch (IOException e) {
-            e.printStackTrace();
+        } catch (FileNotFoundException e1) {
+            LogUtil.error(logPrefix, location, e1.getMessage(), "", e1 );
+        } catch (IOException e2) {
+            LogUtil.error(logPrefix, location, e2.getMessage(), "", e2 );
         }
+        LogUtil.info(logPrefix,location, "Number of products detected : "+records.size(),"");
         return records;
     }
 
     public ResponseEntity importProductData(List<List<String>> productData, char delimiter, String storeId){
+        String location = Thread.currentThread().getStackTrace()[1].getMethodName();
+        String logPrefix = "migrationService "+ "Line No. : " + Thread.currentThread().getStackTrace()[1].getLineNumber();
         List<ProductWithDetails> importedProducts = new ArrayList<>();
         List<String> columns = productData.get(0);
         productData.remove(0);
+        LogUtil.info(logPrefix,location, "Columns  : "+columns,"");
+        LogUtil.info(logPrefix,location, "Column Count  : "+columns.size(),"");
 
         try{
             switch (delimiter){
@@ -102,6 +110,7 @@ public class MigrationService {
 //
 //                        }
 
+                        LogUtil.info(logPrefix,location, "Added Product : "+p.toString(),"");
                         importedProducts.add(p);
                     }
 
@@ -113,7 +122,7 @@ public class MigrationService {
                         ProductWithDetails p = new ProductWithDetails();
                         ProductInventory productInventory = new ProductInventory();
 
-                        p.setStoreId(storeId);
+//                        p.setStoreId(storeId);
                         p.setName(product.get(columns.indexOf("*Product Name")));
 //                        p.setCategoryId(product.get(columns.indexOf("catId")));
                         p.setDescription(product.get(columns.indexOf("Short Description"))+"<br>");
@@ -126,6 +135,8 @@ public class MigrationService {
                         productInventory.setItemCode(productInventory.getProductId()+"-aaa");
                         productInventoryRepository.save(productInventory);
 
+                        LogUtil.info(logPrefix,location, "Added Product : "+p.toString(),"");
+
                         importedProducts.add(p);
                     }
                     break;
@@ -136,10 +147,12 @@ public class MigrationService {
 
 
         }catch (Exception e){
-            e.printStackTrace();
+            LogUtil.error(logPrefix, location, e.getMessage(), "", e);
             return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("Wrong Vendor Selected !");
         }
-        return ResponseEntity.status(HttpStatus.OK).body(importedProducts);
+        ResponseEntity<?> response = ResponseEntity.status(HttpStatus.OK).body(importedProducts);
+        LogUtil.info(logPrefix, location, "Add Catalogue Response : " + response, "");
+        return response;
     }
 
 
