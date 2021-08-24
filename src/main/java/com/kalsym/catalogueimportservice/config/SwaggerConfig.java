@@ -23,7 +23,7 @@ public class SwaggerConfig {
     }
 
     private ApiInfo apiInfo() {
-        return new ApiInfoBuilder().title("Product Catalogue Import Service API Document")
+        return new ApiInfoBuilder().title("Catalogue Import Service API Document")
                 .description("Used to import product data from sellers on daraz or lazada etc...")
                 .termsOfServiceUrl("not added yet")
                 .license("not added yet")
