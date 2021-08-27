@@ -17,10 +17,11 @@ public class MigrationController {
     @Autowired
     MigrationService migrationService;
 
-    @PostMapping(path = {"/{storeId}/{type}/upload"})
+    @PostMapping(path = {"/{storeId}/{categoryId}/{type}/upload"})
     public ResponseEntity<?> uploadFile(HttpServletRequest request,
                                         @PathVariable String type,
                                         @PathVariable String storeId,
+                                        @PathVariable String categoryId,
                                         @RequestParam("file") MultipartFile file){
         String logprefix = request.getRequestURI() + " ";
         String location = Thread.currentThread().getStackTrace()[1].getMethodName();
@@ -28,11 +29,11 @@ public class MigrationController {
 
         if(type.equals("daraz")){
             LogUtil.info(logprefix, location, "Daraz catalogue detected !", "");
-            return migrationService.importProductData(migrationService.readProductData(file,';'),';', storeId);
+            return migrationService.importProductData(migrationService.readProductData(file,';'),';', storeId, categoryId);
         }
         else if (type.equals("lazada")){
             LogUtil.info(logprefix, location, "Lazada catalogue detected !", "");
-           return migrationService.importProductData(migrationService.readProductData(file,','),',', storeId);
+           return migrationService.importProductData(migrationService.readProductData(file,','),',', storeId, categoryId);
         }
         else{
             LogUtil.info(logprefix, location, "Invalid service provider selected !", "");

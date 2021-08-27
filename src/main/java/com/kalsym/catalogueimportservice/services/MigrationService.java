@@ -51,7 +51,7 @@ public class MigrationService {
         return records;
     }
 
-    public ResponseEntity importProductData(List<List<String>> productData, char delimiter, String storeId){
+    public ResponseEntity importProductData(List<List<String>> productData, char delimiter, String storeId, String categoryId){
         String location = Thread.currentThread().getStackTrace()[1].getMethodName();
         String logPrefix = "migrationService "+ "Line No. : " + Thread.currentThread().getStackTrace()[1].getLineNumber();
         List<ProductWithDetails> importedProducts = new ArrayList<>();
@@ -78,9 +78,12 @@ public class MigrationService {
                         }
 
                         p.setStoreId(storeId);
+                        p.setCategoryId(categoryId);
                         p.setThumbnailUrl(product.get(columns.indexOf("MainImage")));
                         p.setProductAssets(null);
-                        p.setCategoryId(null);
+                        p.setSeoName(generateSeoName(p.getName()));
+                        p.setSeoUrl("");
+                        p.setCategoryId(categoryId);
                         p.setProductInventories(null);
 
                         productInventory.setProductId(productRepository.save(p).getId());
@@ -122,12 +125,14 @@ public class MigrationService {
                         ProductWithDetails p = new ProductWithDetails();
                         ProductInventory productInventory = new ProductInventory();
 
-//                        p.setStoreId(storeId);
+                        p.setStoreId(storeId);
                         p.setName(product.get(columns.indexOf("*Product Name")));
-//                        p.setCategoryId(product.get(columns.indexOf("catId")));
+                        p.setCategoryId(categoryId);
                         p.setDescription(product.get(columns.indexOf("Short Description"))+"<br>");
                         p.setStatus(Status.DRAFT );
                         p.setThumbnailUrl(product.get(columns.indexOf("*Product Images1")));
+                        p.setSeoName(generateSeoName(p.getName()));
+                        p.setSeoUrl("");
 
                         productInventory.setProductId(productRepository.save(p).getId());
                         //TODO: SKU CHANGED TO 100 in DATABASE
@@ -147,7 +152,7 @@ public class MigrationService {
 
 
         }catch (Exception e){
-            LogUtil.error(logPrefix, location, e.getMessage(), "", e);
+            LogUtil.error(logPrefix, location,"Wrong Vendor Selected !", "", e);
             return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("Wrong Vendor Selected !");
         }
         ResponseEntity<?> response = ResponseEntity.status(HttpStatus.OK).body(importedProducts);
@@ -155,5 +160,18 @@ public class MigrationService {
         return response;
     }
 
+    private String generateSeoName(String name) {
+        name = name.replace(" ", "-");
+        name = name.replace("\"", "");
+        name = name.replace("'", "");
+        name = name.replace("/", "");
+        name = name.replace("\\", "");
+        name = name.replace("&", "");
+        name = name.replace(",", "");
+        name = name.replace("%", "percent");
+        name = name.replace("(", "%28");
+        name = name.replace(")", "%29");
+        return name;
+    }
 
 }
