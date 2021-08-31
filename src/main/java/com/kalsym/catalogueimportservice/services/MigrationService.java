@@ -2,14 +2,17 @@ package com.kalsym.catalogueimportservice.services;
 
 import com.kalsym.catalogueimportservice.models.product.*;
 import com.kalsym.catalogueimportservice.models.product.enums.Status;
+import com.kalsym.catalogueimportservice.models.product.store.Store;
 import com.kalsym.catalogueimportservice.repositories.ProductInventoryRepository;
 import com.kalsym.catalogueimportservice.repositories.ProductRepository;
+import com.kalsym.catalogueimportservice.repositories.StoreRepository;
 import com.opencsv.CSVParser;
 import com.opencsv.CSVParserBuilder;
 import com.opencsv.CSVReader;
 import com.opencsv.CSVReaderBuilder;
 import org.jboss.logging.BasicLogger;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
@@ -20,6 +23,7 @@ import java.io.*;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Optional;
 
 @Service
 public class MigrationService {
@@ -29,6 +33,12 @@ public class MigrationService {
 
     @Autowired
     ProductInventoryRepository productInventoryRepository;
+
+    @Autowired
+    StoreRepository storeRepository;
+
+    @Value("${product.seo.url:https://{{store-domain}}.symplified.store/products/name/{{product-name}}}")
+    private String productSeoUrl;
 
     public List<List<String>> readProductData(MultipartFile file, char delimiter)
     {
@@ -60,6 +70,14 @@ public class MigrationService {
         LogUtil.info(logPrefix,location, "Columns  : "+columns,"");
         LogUtil.info(logPrefix,location, "Column Count  : "+columns.size(),"");
 
+        Optional<Store> optStore = storeRepository.findById(storeId);
+        if(!optStore.isPresent())
+        {
+            LogUtil.warn(logPrefix,location, "Store with id :"+storeId+" not found","");
+            return ResponseEntity.status(404).body("Store not Found !");
+        }
+        Store store = optStore.get();
+
         try{
             switch (delimiter){
                 case ';':{
@@ -82,7 +100,7 @@ public class MigrationService {
                         p.setThumbnailUrl(product.get(columns.indexOf("MainImage")));
                         p.setProductAssets(null);
                         p.setSeoName(generateSeoName(p.getName()));
-                        p.setSeoUrl("");
+                        p.setSeoUrl(generateSeoUrl(store, p));
                         p.setCategoryId(categoryId);
                         p.setProductInventories(null);
 
@@ -132,7 +150,7 @@ public class MigrationService {
                         p.setStatus(Status.DRAFT );
                         p.setThumbnailUrl(product.get(columns.indexOf("*Product Images1")));
                         p.setSeoName(generateSeoName(p.getName()));
-                        p.setSeoUrl("");
+                        p.setSeoUrl(generateSeoUrl(store, p));
 
                         productInventory.setProductId(productRepository.save(p).getId());
                         //TODO: SKU CHANGED TO 100 in DATABASE
@@ -172,6 +190,12 @@ public class MigrationService {
         name = name.replace("(", "%28");
         name = name.replace(")", "%29");
         return name;
+    }
+
+    private String generateSeoUrl(Store store, ProductWithDetails p){
+        String seoUrl = productSeoUrl.replace("{{store-domain}}", store.getDomain());
+        seoUrl = seoUrl.replace("{{product-name}}", p.getSeoName());
+        return seoUrl;
     }
 
 }

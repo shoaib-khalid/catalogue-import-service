@@ -10,7 +10,7 @@
 	</parent>
 	<groupId>com.kalsym</groupId>
 	<artifactId>catalogue-import-service</artifactId>
-	<version>0.0.1-SNAPSHOT</version>
+	<version>0.0.1-BETA</version>
 	<name>catalogue-import-service</name>
 	<description>Service to migrate products from third parties like lazada, daraz etc..</description>
 	<properties>
